@@ -8,6 +8,7 @@ export class InputController {
         this.keys = {};
         this.touchControls = {
             forward: false,
+            backward: false,
             left: false,
             right: false,
             brake: false
@@ -68,6 +69,7 @@ export class InputController {
         };
         
         setupTouchButton('btn-forward', 'forward');
+        setupTouchButton('btn-backward', 'backward');
         setupTouchButton('btn-left', 'left');
         setupTouchButton('btn-right', 'right');
         setupTouchButton('btn-brake', 'brake');
@@ -88,6 +90,7 @@ export class InputController {
     getInput() {
         return {
             forward: this.keys['w'] || this.keys['arrowup'] || this.touchControls.forward,
+            backward: this.keys['s'] || this.keys['arrowdown'] || this.touchControls.backward,
             left: this.keys['a'] || this.keys['arrowleft'] || this.touchControls.left,
             right: this.keys['d'] || this.keys['arrowright'] || this.touchControls.right,
             brake: this.keys[' '] || this.touchControls.brake
@@ -209,6 +212,7 @@ export class InputController {
         this.keys = {};
         this.touchControls = {
             forward: false,
+            backward: false,
             left: false,
             right: false,
             brake: false

@@ -6,11 +6,12 @@ import * as THREE from 'three';
 export const CONFIG = {
     // 车辆配置
     vehicle: {
-        speed: 0.3,
+        speed: 0.15,              // 前进速度（已降低）
+        reverseSpeed: 0.08,       // 倒车速度
         turnSpeed: 0.03,
         brake: 0.95,
         maxHealth: 1000,
-        collisionDamage: 1,      // 每次碰撞的伤害值
+        collisionDamage: 1,       // 每次碰撞的伤害值
         criticalHealth: 20,       // 低于此值显示危险警告
         collisionCooldown: 0.5,   // 碰撞冷却时间（秒）
     },

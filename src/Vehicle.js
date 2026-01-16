@@ -121,11 +121,19 @@ export class Vehicle {
     update(input, deltaTime) {
         if (this.isDestroyed) return;
         
-        // 应用加速
+        // 应用前进加速
         if (input.forward) {
             const direction = new THREE.Vector3(0, 0, -1);
             direction.applyQuaternion(this.mesh.quaternion);
             direction.multiplyScalar(CONFIG.vehicle.speed);
+            this.velocity.add(direction);
+        }
+        
+        // 应用倒车
+        if (input.backward) {
+            const direction = new THREE.Vector3(0, 0, 1);
+            direction.applyQuaternion(this.mesh.quaternion);
+            direction.multiplyScalar(CONFIG.vehicle.reverseSpeed);
             this.velocity.add(direction);
         }
         

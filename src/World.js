@@ -212,6 +212,11 @@ export class World {
         ring.position.y = 30;
         landmarkGroup.add(ring);
         
+        // 添加汉字标签
+        const textSprite = this.createTextSprite(landmarkData.name, landmarkData.color);
+        textSprite.position.y = 45;
+        landmarkGroup.add(textSprite);
+        
         landmarkGroup.position.set(
             landmarkData.position.x, 
             0, 
@@ -219,7 +224,52 @@ export class World {
         );
         this.scene.add(landmarkGroup);
         
-        return { group: landmarkGroup, ring, base };
+        return { group: landmarkGroup, ring, base, textSprite };
+    }
+    
+    /**
+     * 创建文字精灵（用于显示汉字地名）
+     * @param {string} text - 要显示的文字
+     * @param {number} color - 背景颜色
+     * @returns {THREE.Sprite} 文字精灵
+     */
+    createTextSprite(text, color) {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        // 设置画布大小
+        canvas.width = 256;
+        canvas.height = 64;
+        
+        // 绘制背景
+        context.fillStyle = `#${color.toString(16).padStart(6, '0')}`;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // 绘制边框
+        context.strokeStyle = '#FFFFFF';
+        context.lineWidth = 3;
+        context.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
+        
+        // 绘制文字
+        context.font = 'bold 32px Microsoft YaHei, PingFang SC, sans-serif';
+        context.fillStyle = '#FFFFFF';
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(text, canvas.width / 2, canvas.height / 2);
+        
+        // 创建纹理和精灵
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        
+        const spriteMaterial = new THREE.SpriteMaterial({ 
+            map: texture,
+            transparent: true
+        });
+        
+        const sprite = new THREE.Sprite(spriteMaterial);
+        sprite.scale.set(20, 5, 1);  // 调整标签大小
+        
+        return sprite;
     }
     
     /**
