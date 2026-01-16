@@ -20,53 +20,102 @@ export class Vehicle {
     }
     
     /**
-     * 创建车辆模型
+     * 创建车辆模型 - 三轮车
      */
     create() {
         const vehicleGroup = new THREE.Group();
         
-        // 车身
-        const bodyGeometry = new THREE.BoxGeometry(3, 1.5, 5);
-        const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xFF4444 });
+        // 车身（三轮车车身，前窄后宽）
+        const bodyShape = new THREE.Shape();
+        bodyShape.moveTo(-1.5, -2);   // 后左
+        bodyShape.lineTo(1.5, -2);    // 后右
+        bodyShape.lineTo(0.8, 2);     // 前右
+        bodyShape.lineTo(-0.8, 2);    // 前左
+        bodyShape.lineTo(-1.5, -2);   // 回到起点
+        
+        const extrudeSettings = { depth: 1.2, bevelEnabled: false };
+        const bodyGeometry = new THREE.ExtrudeGeometry(bodyShape, extrudeSettings);
+        const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0x00AA00 }); // 绿色三轮车
         const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-        body.position.y = 1;
+        body.rotation.x = -Math.PI / 2;
+        body.position.y = 0.6;
+        body.position.z = 0;
         body.castShadow = true;
         body.name = 'body';
         vehicleGroup.add(body);
-        this.originalMaterials.push({ mesh: body, color: 0xFF4444 });
+        this.originalMaterials.push({ mesh: body, color: 0x00AA00 });
         
-        // 驾驶舱
-        const cabinGeometry = new THREE.BoxGeometry(2.5, 1.2, 2.5);
-        const cabinMaterial = new THREE.MeshLambertMaterial({ color: 0x4444FF });
-        const cabin = new THREE.Mesh(cabinGeometry, cabinMaterial);
-        cabin.position.y = 2;
-        cabin.position.z = -0.5;
-        cabin.castShadow = true;
-        cabin.name = 'cabin';
-        vehicleGroup.add(cabin);
-        this.originalMaterials.push({ mesh: cabin, color: 0x4444FF });
+        // 车篷（三轮车的遮阳篷）
+        const canopyGeometry = new THREE.BoxGeometry(3, 0.1, 3);
+        const canopyMaterial = new THREE.MeshLambertMaterial({ color: 0x0066CC });
+        const canopy = new THREE.Mesh(canopyGeometry, canopyMaterial);
+        canopy.position.set(0, 2.5, -0.5);
+        canopy.castShadow = true;
+        canopy.name = 'canopy';
+        vehicleGroup.add(canopy);
+        this.originalMaterials.push({ mesh: canopy, color: 0x0066CC });
         
-        // 车轮
-        const wheelGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.4, 16);
+        // 车篷支柱
+        const pillarGeometry = new THREE.CylinderGeometry(0.08, 0.08, 1.5, 8);
+        const pillarMaterial = new THREE.MeshLambertMaterial({ color: 0x333333 });
+        const pillarPositions = [
+            { x: 1.2, z: -1.8 },
+            { x: -1.2, z: -1.8 },
+            { x: 0.6, z: 1 },
+            { x: -0.6, z: 1 }
+        ];
+        pillarPositions.forEach(pos => {
+            const pillar = new THREE.Mesh(pillarGeometry, pillarMaterial);
+            pillar.position.set(pos.x, 1.75, pos.z);
+            pillar.castShadow = true;
+            vehicleGroup.add(pillar);
+        });
+        
+        // 座位
+        const seatGeometry = new THREE.BoxGeometry(2.2, 0.3, 1.5);
+        const seatMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 }); // 棕色座椅
+        const seat = new THREE.Mesh(seatGeometry, seatMaterial);
+        seat.position.set(0, 1.2, -0.8);
+        seat.castShadow = true;
+        vehicleGroup.add(seat);
+        
+        // 车把手
+        const handleGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1.2, 8);
+        const handleMaterial = new THREE.MeshLambertMaterial({ color: 0x444444 });
+        const handle = new THREE.Mesh(handleGeometry, handleMaterial);
+        handle.rotation.z = Math.PI / 2;
+        handle.position.set(0, 1.5, 1.5);
+        vehicleGroup.add(handle);
+        
+        // 车轮 - 三轮车配置：前面1个，后面2个
+        const frontWheelGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.3, 16);
+        const rearWheelGeometry = new THREE.CylinderGeometry(0.55, 0.55, 0.4, 16);
         const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x222222 });
         
-        const wheelPositions = [
-            { x: 1.5, y: 0.5, z: 1.5 },
-            { x: -1.5, y: 0.5, z: 1.5 },
-            { x: 1.5, y: 0.5, z: -1.5 },
-            { x: -1.5, y: 0.5, z: -1.5 }
-        ];
+        // 前轮（单个）
+        const frontWheel = new THREE.Mesh(frontWheelGeometry, wheelMaterial);
+        frontWheel.rotation.z = Math.PI / 2;
+        frontWheel.position.set(0, 0.5, 2);
+        frontWheel.castShadow = true;
+        frontWheel.name = 'wheel_front';
+        vehicleGroup.add(frontWheel);
         
-        this.wheels = [];
-        wheelPositions.forEach((pos, index) => {
-            const wheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
-            wheel.rotation.z = Math.PI / 2;
-            wheel.position.set(pos.x, pos.y, pos.z);
-            wheel.castShadow = true;
-            wheel.name = `wheel_${index}`;
-            vehicleGroup.add(wheel);
-            this.wheels.push(wheel);
-        });
+        // 后轮（左右两个）
+        const rearLeftWheel = new THREE.Mesh(rearWheelGeometry, wheelMaterial);
+        rearLeftWheel.rotation.z = Math.PI / 2;
+        rearLeftWheel.position.set(-1.5, 0.55, -1.5);
+        rearLeftWheel.castShadow = true;
+        rearLeftWheel.name = 'wheel_rear_left';
+        vehicleGroup.add(rearLeftWheel);
+        
+        const rearRightWheel = new THREE.Mesh(rearWheelGeometry, wheelMaterial);
+        rearRightWheel.rotation.z = Math.PI / 2;
+        rearRightWheel.position.set(1.5, 0.55, -1.5);
+        rearRightWheel.castShadow = true;
+        rearRightWheel.name = 'wheel_rear_right';
+        vehicleGroup.add(rearRightWheel);
+        
+        this.wheels = [frontWheel, rearLeftWheel, rearRightWheel];
         
         // 初始位置放在地图边缘的道路上，避免与建筑物碰撞
         const startX = -CONFIG.world.size / 2 + CONFIG.world.blockSize;
