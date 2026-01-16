@@ -6,6 +6,7 @@ import { CollisionSystem } from './CollisionSystem.js';
 import { InputController } from './InputController.js';
 import { UIManager } from './UIManager.js';
 import { Police } from './Police.js';
+import { AudioManager } from './AudioManager.js';
 
 /**
  * 游戏主类 - 协调所有游戏系统
@@ -24,6 +25,7 @@ export class Game {
         this.inputController = null;
         this.uiManager = null;
         this.police = null;
+        this.audioManager = null;
         
         // 游戏状态
         this.distanceTraveled = 0;
@@ -55,6 +57,10 @@ export class Game {
         this.uiManager = new UIManager();
         this.collisionSystem = new CollisionSystem();
         this.police = new Police(this.scene);
+        this.audioManager = new AudioManager();
+        
+        // 设置音频启动事件（需要用户交互）
+        this.setupAudioStart();
         
         // 创建无限世界
         this.world = new InfiniteWorld(this.scene);
@@ -177,6 +183,24 @@ export class Game {
     }
     
     /**
+     * 设置音频启动（需要用户交互）
+     */
+    setupAudioStart() {
+        const startAudio = () => {
+            this.audioManager.resume();
+            this.audioManager.startEngine();
+            // 移除事件监听器（只需要触发一次）
+            document.removeEventListener('click', startAudio);
+            document.removeEventListener('keydown', startAudio);
+            document.removeEventListener('touchstart', startAudio);
+        };
+        
+        document.addEventListener('click', startAudio);
+        document.addEventListener('keydown', startAudio);
+        document.addEventListener('touchstart', startAudio);
+    }
+    
+    /**
      * 窗口大小改变处理
      */
     onWindowResize() {
@@ -245,6 +269,11 @@ export class Game {
         // 更新车辆
         this.vehicle.update(input, deltaTime);
         
+        // 更新引擎音效
+        const isAccelerating = input.forward || input.backward;
+        const speed = this.vehicle.getSpeed() / 50; // 归一化速度
+        this.audioManager.updateEngine(Math.min(speed, 1), isAccelerating);
+        
         // 更新无限世界（生成新区块）
         this.world.update(this.vehicle.position);
         
@@ -258,6 +287,7 @@ export class Game {
         // 碰撞检测
         const collision = this.collisionSystem.update(this.vehicle);
         if (collision) {
+            this.audioManager.playCollision();
             console.log(`💥 碰撞! 类型: ${collision.type}, 剩余血量: ${this.vehicle.health}`);
         }
         
@@ -282,16 +312,25 @@ export class Game {
                 
                 const rewardText = nearbyLandmark.isChengdu ? '成都名胜!' : '发现新地点!';
                 this.uiManager.showCoinNotification(reward, rewardText);
+                this.audioManager.playCoinCollect();
                 console.log(`🪙 获得 ${reward} 金币! (${nearbyLandmark.name})`);
             }
         }
         
         // 更新警察系统
+        const previousPoliceCount = this.police.getCount();
         const caughtByPolice = this.police.update(this.vehicle.position, deltaTime);
+        
+        // 检测新警察出现
+        if (this.police.getCount() > previousPoliceCount) {
+            this.audioManager.playSiren();
+        }
+        
         if (caughtByPolice) {
             const penalty = CONFIG.coin.policePenalty;
             this.coins = Math.max(0, this.coins - penalty);
             this.uiManager.showCoinNotification(-penalty, '被警察抓到!');
+            this.audioManager.playCaught();
             console.log(`🚨 被警察抓到! 扣除 ${penalty} 金币`);
         }
         
