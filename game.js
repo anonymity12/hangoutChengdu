@@ -39,6 +39,7 @@ class Game {
         this.distanceTraveled = 0;
         this.gameTime = 0;
         this.lastPosition = new THREE.Vector3();
+        this.lastTime = performance.now();
         
         // UI elements
         this.distanceEl = document.getElementById('distance');
@@ -426,7 +427,9 @@ class Game {
     animate() {
         requestAnimationFrame(() => this.animate());
         
-        const deltaTime = 0.016; // Assume 60 FPS
+        const currentTime = performance.now();
+        const deltaTime = Math.min((currentTime - this.lastTime) / 1000, 0.1); // Cap at 0.1s to prevent large jumps
+        this.lastTime = currentTime;
         this.gameTime += deltaTime;
         
         this.updateVehicle(deltaTime);
