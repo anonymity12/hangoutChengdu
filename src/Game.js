@@ -5,6 +5,7 @@ import { InfiniteWorld } from './InfiniteWorld.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { InputController } from './InputController.js';
 import { UIManager } from './UIManager.js';
+import { Police } from './Police.js';
 
 /**
  * 游戏主类 - 协调所有游戏系统
@@ -22,10 +23,13 @@ export class Game {
         this.collisionSystem = null;
         this.inputController = null;
         this.uiManager = null;
+        this.police = null;
         
         // 游戏状态
         this.distanceTraveled = 0;
         this.gameTime = 0;
+        this.coins = 0;  // 金币数量
+        this.visitedLandmarks = new Set();  // 已访问的地标
         this.lastPosition = new THREE.Vector3();
         this.lastTime = performance.now();
         this.isRunning = false;
@@ -50,6 +54,7 @@ export class Game {
         this.inputController = new InputController();
         this.uiManager = new UIManager();
         this.collisionSystem = new CollisionSystem();
+        this.police = new Police(this.scene);
         
         // 创建无限世界
         this.world = new InfiniteWorld(this.scene);
@@ -219,6 +224,9 @@ export class Game {
         this.vehicle.reset();
         this.distanceTraveled = 0;
         this.gameTime = 0;
+        this.coins = 0;
+        this.visitedLandmarks.clear();
+        this.police.reset();
         this.lastPosition.copy(this.vehicle.position);
         
         this.uiManager.hideGameOver();
@@ -256,10 +264,35 @@ export class Game {
         // 更新世界（地标动画等）
         this.world.updateLandmarks(deltaTime);
         
-        // 检查是否靠近地标
+        // 检查是否靠近地标并获得金币奖励
         const nearbyLandmark = this.world.checkNearbyLandmark(this.vehicle.position);
         if (nearbyLandmark) {
             this.uiManager.showLocationInfo(nearbyLandmark.name);
+            
+            // 检查是否是新访问的地标
+            const landmarkKey = `${nearbyLandmark.name}_${Math.round(nearbyLandmark.distance)}`;
+            if (!this.visitedLandmarks.has(nearbyLandmark.name)) {
+                this.visitedLandmarks.add(nearbyLandmark.name);
+                
+                // 根据地标类型给予不同奖励
+                const reward = nearbyLandmark.isChengdu 
+                    ? CONFIG.coin.chengduLandmarkReward 
+                    : CONFIG.coin.landmarkReward;
+                this.coins += reward;
+                
+                const rewardText = nearbyLandmark.isChengdu ? '成都名胜!' : '发现新地点!';
+                this.uiManager.showCoinNotification(reward, rewardText);
+                console.log(`🪙 获得 ${reward} 金币! (${nearbyLandmark.name})`);
+            }
+        }
+        
+        // 更新警察系统
+        const caughtByPolice = this.police.update(this.vehicle.position, deltaTime);
+        if (caughtByPolice) {
+            const penalty = CONFIG.coin.policePenalty;
+            this.coins = Math.max(0, this.coins - penalty);
+            this.uiManager.showCoinNotification(-penalty, '被警察抓到!');
+            console.log(`🚨 被警察抓到! 扣除 ${penalty} 金币`);
         }
         
         // 计算行驶距离
@@ -277,7 +310,9 @@ export class Game {
             time: this.gameTime,
             healthPercent: this.vehicle.getHealthPercent(),
             collisionCount: this.vehicle.collisionCount,
-            isDestroyed: this.vehicle.isDestroyed
+            isDestroyed: this.vehicle.isDestroyed,
+            coins: this.coins,
+            policeCount: this.police.getCount()
         });
     }
     

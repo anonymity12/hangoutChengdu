@@ -19,10 +19,18 @@ export class UIManager {
         this.collisionCountEl = null;
         this.damageWarning = null;
         
+        // 金币UI
+        this.coinEl = null;
+        this.policeCountEl = null;
+        this.coinNotification = null;
+        
         this.locationTimeout = null;
+        this.coinNotificationTimeout = null;
         
         this.createHealthUI();
+        this.createCoinUI();
         this.createDamageWarning();
+        this.createCoinNotification();
     }
     
     /**
@@ -78,6 +86,70 @@ export class UIManager {
         this.healthBar = healthBar;
         this.healthText = document.getElementById('health-text');
         this.collisionCountEl = document.getElementById('collision-count');
+    }
+    
+    /**
+     * 创建金币UI
+     */
+    createCoinUI() {
+        const statsPanel = document.getElementById('stats-panel');
+        if (!statsPanel) return;
+        
+        // 金币显示
+        const coinItem = document.createElement('div');
+        coinItem.className = 'stat-item';
+        coinItem.style.marginTop = '10px';
+        coinItem.innerHTML = `
+            <span class="stat-label">🪙 金币:</span>
+            <span id="coin-count" style="color: #FFD700; font-weight: bold;">0</span>
+        `;
+        statsPanel.appendChild(coinItem);
+        this.coinEl = document.getElementById('coin-count');
+        
+        // 警察数量显示
+        const policeItem = document.createElement('div');
+        policeItem.className = 'stat-item';
+        policeItem.innerHTML = `
+            <span class="stat-label">👮 警察:</span>
+            <span id="police-count" style="color: #FF4444;">0</span>
+        `;
+        statsPanel.appendChild(policeItem);
+        this.policeCountEl = document.getElementById('police-count');
+    }
+    
+    /**
+     * 创建金币通知UI
+     */
+    createCoinNotification() {
+        const notification = document.createElement('div');
+        notification.id = 'coin-notification';
+        notification.style.cssText = `
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            z-index: 200;
+            animation: coinPop 0.5s ease-out;
+        `;
+        
+        // 添加动画样式
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes coinPop {
+                0% { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+                50% { transform: translate(-50%, -50%) scale(1.2); }
+                100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        document.getElementById('ui-overlay').appendChild(notification);
+        this.coinNotification = notification;
     }
     
     /**
@@ -241,6 +313,53 @@ export class UIManager {
     }
     
     /**
+     * 更新金币数量
+     * @param {number} coins - 金币数量
+     */
+    updateCoins(coins) {
+        if (this.coinEl) {
+            this.coinEl.textContent = coins;
+        }
+    }
+    
+    /**
+     * 更新警察数量
+     * @param {number} count - 警察数量
+     */
+    updatePoliceCount(count) {
+        if (this.policeCountEl) {
+            this.policeCountEl.textContent = count;
+        }
+    }
+    
+    /**
+     * 显示金币通知
+     * @param {number} amount - 金币数量（正为奖励，负为惩罚）
+     * @param {string} reason - 原因
+     */
+    showCoinNotification(amount, reason) {
+        if (this.coinNotification) {
+            const isPositive = amount > 0;
+            this.coinNotification.style.background = isPositive 
+                ? 'rgba(76, 175, 80, 0.9)' 
+                : 'rgba(244, 67, 54, 0.9)';
+            this.coinNotification.style.color = 'white';
+            this.coinNotification.textContent = isPositive 
+                ? `🪙 +${amount} ${reason}` 
+                : `🚔 ${amount} ${reason}`;
+            this.coinNotification.style.display = 'block';
+            this.coinNotification.style.animation = 'none';
+            this.coinNotification.offsetHeight; // 触发重排
+            this.coinNotification.style.animation = 'coinPop 0.5s ease-out';
+            
+            clearTimeout(this.coinNotificationTimeout);
+            this.coinNotificationTimeout = setTimeout(() => {
+                this.coinNotification.style.display = 'none';
+            }, 2000);
+        }
+    }
+    
+    /**
      * 更新所有UI
      * @param {Object} stats - 游戏状态
      */
@@ -250,6 +369,8 @@ export class UIManager {
         this.updateTime(stats.time);
         this.updateHealth(stats.healthPercent);
         this.updateCollisionCount(stats.collisionCount);
+        this.updateCoins(stats.coins);
+        this.updatePoliceCount(stats.policeCount);
         
         if (stats.isDestroyed) {
             this.showGameOver();

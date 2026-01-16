@@ -54,6 +54,24 @@ export const CONFIG = {
         backgroundColor: 0x87CEEB,
         fogNear: 100,
         fogFar: 500,
+    },
+    
+    // 金币配置
+    coin: {
+        landmarkReward: 50,         // 访问地标奖励
+        chengduLandmarkReward: 100, // 访问成都核心地标奖励
+        policePenalty: 100,         // 被警察抓到扣除
+    },
+    
+    // 警察配置
+    police: {
+        maxCount: 3,            // 最多同时存在的警察数
+        spawnInterval: 5,       // 生成间隔（秒）
+        spawnChance: 0.4,       // 每次间隔的生成概率
+        spawnDistance: 80,      // 生成距离（离玩家的距离）
+        despawnDistance: 150,   // 消失距离
+        speed: 8,               // 追逐速度
+        catchRadius: 4,         // 抓捕半径
     }
 };
 
