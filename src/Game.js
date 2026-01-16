@@ -174,11 +174,29 @@ export class Game {
      * 更新相机位置
      */
     updateCamera() {
-        const cameraPosition = new THREE.Vector3();
-        cameraPosition.copy(this.vehicle.position);
-        cameraPosition.add(CONFIG.camera.offset);
+        const cameraState = this.inputController.getCameraState();
         
-        this.camera.position.lerp(cameraPosition, CONFIG.camera.lerpFactor);
+        // 计算相机位置（球坐标系）
+        const distance = cameraState.distance;
+        const azimuth = cameraState.azimuth + this.vehicle.rotation.y; // 相对于车辆方向
+        const polar = cameraState.polar;
+        
+        // 球坐标转笛卡尔坐标
+        const offsetX = distance * Math.sin(polar) * Math.sin(azimuth);
+        const offsetY = distance * Math.cos(polar);
+        const offsetZ = distance * Math.sin(polar) * Math.cos(azimuth);
+        
+        // 目标相机位置
+        const targetPosition = new THREE.Vector3(
+            this.vehicle.position.x + offsetX,
+            this.vehicle.position.y + offsetY,
+            this.vehicle.position.z + offsetZ
+        );
+        
+        // 平滑过渡到目标位置
+        this.camera.position.lerp(targetPosition, CONFIG.camera.lerpFactor);
+        
+        // 相机始终看向车辆
         this.camera.lookAt(this.vehicle.position);
     }
     

@@ -22,6 +22,13 @@ export const CONFIG = {
         near: 0.1,
         far: 1000,
         lerpFactor: 0.1,
+        // 相机旋转配置
+        rotationSpeed: 0.005,      // 旋转灵敏度
+        minPolarAngle: 0.1,        // 最小极角（接近正上方往下看）
+        maxPolarAngle: Math.PI / 2 - 0.1,  // 最大极角（水平视角）
+        defaultDistance: 17,       // 默认相机距离
+        minDistance: 8,            // 最小距离
+        maxDistance: 50,           // 最大距离
     },
     
     // 世界配置

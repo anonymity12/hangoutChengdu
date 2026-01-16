@@ -16,8 +16,15 @@ export class InputController {
             reset: null
         };
         
+        // 相机拖拽控制
+        this.isDragging = false;
+        this.lastDragPosition = { x: 0, y: 0 };
+        this.cameraRotation = { azimuth: 0, polar: Math.PI / 4 }; // 方位角和极角
+        this.cameraDistance = 17;
+        
         this.setupKeyboardControls();
         this.setupTouchControls();
+        this.setupCameraDragControls();
     }
     
     /**
@@ -97,6 +104,105 @@ export class InputController {
     }
     
     /**
+     * 设置相机拖拽控制
+     */
+    setupCameraDragControls() {
+        const canvas = document.getElementById('gameCanvas');
+        if (!canvas) return;
+        
+        // 鼠标事件
+        canvas.addEventListener('mousedown', (e) => this.onDragStart(e.clientX, e.clientY, e));
+        canvas.addEventListener('mousemove', (e) => this.onDragMove(e.clientX, e.clientY));
+        canvas.addEventListener('mouseup', () => this.onDragEnd());
+        canvas.addEventListener('mouseleave', () => this.onDragEnd());
+        
+        // 触摸事件（双指或单指在非控制区域）
+        canvas.addEventListener('touchstart', (e) => {
+            // 如果是在移动控制按钮上，不处理相机旋转
+            if (e.target.classList.contains('control-btn')) return;
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                this.onDragStart(touch.clientX, touch.clientY, e);
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchmove', (e) => {
+            if (this.isDragging && e.touches.length === 1) {
+                const touch = e.touches[0];
+                this.onDragMove(touch.clientX, touch.clientY);
+            }
+        }, { passive: false });
+        
+        canvas.addEventListener('touchend', () => this.onDragEnd());
+        canvas.addEventListener('touchcancel', () => this.onDragEnd());
+        
+        // 鼠标滚轮缩放
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            this.cameraDistance += e.deltaY * zoomSpeed * this.cameraDistance;
+            this.cameraDistance = Math.max(
+                CONFIG.camera.minDistance,
+                Math.min(CONFIG.camera.maxDistance, this.cameraDistance)
+            );
+        }, { passive: false });
+    }
+    
+    /**
+     * 拖拽开始
+     */
+    onDragStart(x, y, event) {
+        // 检查是否点击在控制按钮上
+        if (event && event.target && event.target.classList.contains('control-btn')) {
+            return;
+        }
+        this.isDragging = true;
+        this.lastDragPosition = { x, y };
+    }
+    
+    /**
+     * 拖拽移动
+     */
+    onDragMove(x, y) {
+        if (!this.isDragging) return;
+        
+        const deltaX = x - this.lastDragPosition.x;
+        const deltaY = y - this.lastDragPosition.y;
+        
+        // 更新方位角（水平旋转）
+        this.cameraRotation.azimuth -= deltaX * CONFIG.camera.rotationSpeed;
+        
+        // 更新极角（垂直旋转），并限制范围
+        this.cameraRotation.polar += deltaY * CONFIG.camera.rotationSpeed;
+        this.cameraRotation.polar = Math.max(
+            CONFIG.camera.minPolarAngle,
+            Math.min(CONFIG.camera.maxPolarAngle, this.cameraRotation.polar)
+        );
+        
+        this.lastDragPosition = { x, y };
+    }
+    
+    /**
+     * 拖拽结束
+     */
+    onDragEnd() {
+        this.isDragging = false;
+    }
+    
+    /**
+     * 获取相机旋转状态
+     * @returns {Object} 相机旋转信息
+     */
+    getCameraState() {
+        return {
+            azimuth: this.cameraRotation.azimuth,
+            polar: this.cameraRotation.polar,
+            distance: this.cameraDistance,
+            isDragging: this.isDragging
+        };
+    }
+    
+    /**
      * 重置所有输入状态
      */
     reset() {
@@ -107,5 +213,13 @@ export class InputController {
             right: false,
             brake: false
         };
+    }
+    
+    /**
+     * 重置相机视角
+     */
+    resetCameraView() {
+        this.cameraRotation = { azimuth: 0, polar: Math.PI / 4 };
+        this.cameraDistance = CONFIG.camera.defaultDistance;
     }
 }
