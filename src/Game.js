@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { CONFIG } from './config.js';
 import { Vehicle } from './Vehicle.js';
-import { World } from './World.js';
+import { InfiniteWorld } from './InfiniteWorld.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { InputController } from './InputController.js';
 import { UIManager } from './UIManager.js';
@@ -29,6 +29,10 @@ export class Game {
         this.lastPosition = new THREE.Vector3();
         this.lastTime = performance.now();
         this.isRunning = false;
+        
+        // 碰撞更新计时器
+        this.collisionUpdateTimer = 0;
+        this.collisionUpdateInterval = 0.5;  // 每0.5秒更新一次碰撞系统
     }
     
     /**
@@ -47,16 +51,19 @@ export class Game {
         this.uiManager = new UIManager();
         this.collisionSystem = new CollisionSystem();
         
-        // 创建世界
-        this.world = new World(this.scene);
+        // 创建无限世界
+        this.world = new InfiniteWorld(this.scene);
         this.world.init();
         
         // 创建车辆
         this.vehicle = new Vehicle(this.scene);
         this.lastPosition.copy(this.vehicle.position);
         
-        // 设置碰撞检测
-        this.setupCollisions();
+        // 初始生成周围区块
+        this.world.update(this.vehicle.position);
+        
+        // 设置初始碰撞检测
+        this.updateCollisionSystem();
         
         // 设置事件监听
         this.setupEventListeners();
@@ -67,7 +74,7 @@ export class Game {
         // 隐藏加载界面
         this.uiManager.hideLoading();
         
-        console.log('✅ 游戏初始化完成');
+        console.log('✅ 游戏初始化完成 - 无限世界模式');
         
         // 开始游戏循环
         this.isRunning = true;
@@ -134,24 +141,27 @@ export class Game {
     }
     
     /**
-     * 设置碰撞检测
+     * 更新碰撞系统（动态添加新建筑物）
      */
-    setupCollisions() {
-        // 添加建筑物到碰撞系统
+    updateCollisionSystem() {
+        // 清除旧的碰撞对象
+        this.collisionSystem.clear();
+        
+        // 添加当前所有建筑物
         this.collisionSystem.addCollidables(
             this.world.getBuildings(), 
             { type: 'building' }
         );
         
-        // 添加地标到碰撞系统
+        // 添加地标
         this.world.landmarks.forEach(landmark => {
-            this.collisionSystem.addCollidable(
-                landmark.mesh, 
-                { type: 'landmark', padding: 2 }
-            );
+            if (landmark.mesh) {
+                this.collisionSystem.addCollidable(
+                    landmark.mesh, 
+                    { type: 'landmark', padding: 2 }
+                );
+            }
         });
-        
-        console.log(`📦 已添加 ${this.world.getBuildings().length} 个建筑物到碰撞系统`);
     }
     
     /**
@@ -226,6 +236,16 @@ export class Game {
         
         // 更新车辆
         this.vehicle.update(input, deltaTime);
+        
+        // 更新无限世界（生成新区块）
+        this.world.update(this.vehicle.position);
+        
+        // 定期更新碰撞系统
+        this.collisionUpdateTimer += deltaTime;
+        if (this.collisionUpdateTimer >= this.collisionUpdateInterval) {
+            this.updateCollisionSystem();
+            this.collisionUpdateTimer = 0;
+        }
         
         // 碰撞检测
         const collision = this.collisionSystem.update(this.vehicle);

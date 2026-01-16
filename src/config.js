@@ -34,10 +34,12 @@ export const CONFIG = {
     
     // 世界配置
     world: {
-        size: 1000,
-        blockSize: 50,
+        size: 1000,           // 兼容旧代码
+        blockSize: 50,        // 街区大小
         buildingDensity: 0.3,
         roadWidth: 8,
+        chunkSize: 200,       // 区块大小
+        renderDistance: 3,    // 渲染距离（区块数）
     },
     
     // 碰撞配置

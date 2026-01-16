@@ -149,13 +149,8 @@ export class Vehicle {
         const frictionFactor = input.brake ? 0.9 : CONFIG.vehicle.brake;
         this.velocity.multiplyScalar(frictionFactor);
         
-        // 更新位置
+        // 更新位置（无边界限制，无限地图）
         this.mesh.position.add(this.velocity);
-        
-        // 限制在世界范围内
-        const halfWorld = CONFIG.world.size / 2;
-        this.mesh.position.x = Math.max(-halfWorld, Math.min(halfWorld, this.mesh.position.x));
-        this.mesh.position.z = Math.max(-halfWorld, Math.min(halfWorld, this.mesh.position.z));
         
         // 更新车轮旋转
         const speed = this.velocity.length();
