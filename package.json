@@ -4,16 +4,19 @@
   "description": "成都闲逛 - 在成都街头骑三轮车探索的休闲游戏",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --port 3006",
     "build": "vite build",
     "preview": "vite preview",
-    "serve": "python3 -m http.server 8080"
+    "serve": "python3 -m http.server 8080",
+    "server": "node server.js",
+    "start": "npm run build && npm run server"
   },
   "keywords": [
     "game",
     "three.js",
     "chengdu",
-    "driving"
+    "driving",
+    "multiplayer"
   ],
   "author": "",
   "license": "MIT",
@@ -22,6 +25,9 @@
     "vite": "^5.0.0"
   },
   "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
     "three": "^0.160.0"
   }
 }

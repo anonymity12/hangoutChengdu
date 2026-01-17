@@ -7,6 +7,7 @@ import { InputController } from './InputController.js';
 import { UIManager } from './UIManager.js';
 import { Police } from './Police.js';
 import { AudioManager } from './AudioManager.js';
+import { NetworkManager } from './NetworkManager.js';
 
 /**
  * 游戏主类 - 协调所有游戏系统
@@ -26,6 +27,10 @@ export class Game {
         this.uiManager = null;
         this.police = null;
         this.audioManager = null;
+        this.networkManager = null;
+        
+        // 联机模式
+        this.isMultiplayer = false;
         
         // 游戏状态
         this.distanceTraveled = 0;
@@ -58,6 +63,7 @@ export class Game {
         this.collisionSystem = new CollisionSystem();
         this.police = new Police(this.scene);
         this.audioManager = new AudioManager();
+        this.networkManager = new NetworkManager(this);
         
         // 设置音频启动事件（需要用户交互）
         this.setupAudioStart();
@@ -85,11 +91,44 @@ export class Game {
         // 隐藏加载界面
         this.uiManager.hideLoading();
         
+        // 检查URL参数决定是否联机
+        this.checkMultiplayerMode();
+        
         console.log('✅ 游戏初始化完成 - 无限世界模式');
         
         // 开始游戏循环
         this.isRunning = true;
         this.animate();
+    }
+    
+    /**
+     * 检查联机模式
+     */
+    checkMultiplayerMode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const roomId = urlParams.get('room');
+        const playerName = urlParams.get('name') || '玩家';
+        
+        if (roomId) {
+            this.joinMultiplayer(roomId, playerName);
+        }
+    }
+    
+    /**
+     * 加入联机游戏
+     */
+    async joinMultiplayer(roomId, playerName) {
+        try {
+            console.log(`🌐 正在连接联机服务器...`);
+            await this.networkManager.connect();
+            this.networkManager.joinRoom(roomId, playerName);
+            this.isMultiplayer = true;
+            this.coins = 100;  // 联机模式初始金币
+            console.log(`✅ 已加入房间: ${roomId}`);
+        } catch (error) {
+            console.error('❌ 联机连接失败:', error);
+            this.uiManager.showCoinNotification(0, '联机连接失败，进入单机模式');
+        }
     }
     
     /**
@@ -332,6 +371,22 @@ export class Game {
             this.uiManager.showCoinNotification(-penalty, '被警察抓到!');
             this.audioManager.playCaught();
             console.log(`🚨 被警察抓到! 扣除 ${penalty} 金币`);
+            
+            // 联机模式同步金币
+            if (this.isMultiplayer) {
+                this.networkManager.sendCoinsUpdate(this.coins);
+            }
+        }
+        
+        // 更新联机系统
+        if (this.isMultiplayer) {
+            this.networkManager.update(deltaTime);
+            
+            // 检查联机模式下金币为零是否失败
+            if (this.coins <= 0 && !this.vehicle.isDestroyed) {
+                this.vehicle.isDestroyed = true;
+                this.uiManager.showGameOver();
+            }
         }
         
         // 计算行驶距离
